@@ -1,0 +1,233 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Sample API",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/check": {
+      "get": {
+        "summary": "Проверить VIN",
+        "description": "Отправляет VIN, приложение обращается к DaData, формируется карточка автомобиля",
+        "parameters": [
+          {
+            "name": "vin",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-HJ-NPR-Z0-9]{17}$",
+              "example": "1HGCM82633A123456",
+              "description": "17-значный VIN-код (латиница, без I, O, Q)"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ОК",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CarInfo"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка валидации VIN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "VIN_VALIDATION_ERROR",
+                  "message": "VIN должен содержать 17 символов"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Слишком много запросов (лимит DaData или rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка сервера",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "DaData не ответил / ошибка интеграции",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/history": {
+      "get": {
+        "tags": [
+          "History"
+        ],
+        "summary": "Получить историю проверок",
+        "description": "Возвращает список всех ранее проверенных VIN текущего пользователя.",
+        "responses": {
+          "200": {
+            "description": "Список запросов с результатами (успешные, ошибки)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/VinRequest"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/history/{id}": {
+      "get": {
+        "tags": [
+          "History"
+        ],
+        "summary": "Получить результат конкретной проверки по id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Карточка автомобиля (если проверка была успешна)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CarInfo"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Запрос не найден",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CarInfo": {
+        "type": "object",
+        "properties": {
+          "manufacturer": {
+            "type": "string",
+            "example": "Honda"
+          },
+          "model": {
+            "type": "string",
+            "example": "Civic"
+          },
+          "year": {
+            "type": "integer",
+            "example": 2012
+          },
+          "bodyType": {
+            "type": "string",
+            "example": "Sedan"
+          },
+          "engine": {
+            "type": "string",
+            "example": "1.8L"
+          }
+        },
+        "description": "Структурированная информация об автомобиле (от DaData)"
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Код ошибки (например, VIN_VALIDATION_ERROR)"
+          },
+          "message": {
+            "type": "string",
+            "description": "Понятное пользователю сообщение"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ]
+      },
+      "VinRequest": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "vin": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "NEW",
+              "IN_PROGRESS",
+              "DONE",
+              "ERROR"
+            ]
+          },
+          "result": {
+            "$ref": "#/components/schemas/CarInfo"
+          },
+          "errorMsg": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "Сущность, хранящаяся в БД"
+      }
+    }
+  }
+}
