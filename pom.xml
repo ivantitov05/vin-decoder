@@ -71,6 +71,12 @@
             <scope>test</scope>
         </dependency>
 
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+
         <!-- Для тестов с БД (H2) -->
         <dependency>
             <groupId>com.h2database</groupId>
