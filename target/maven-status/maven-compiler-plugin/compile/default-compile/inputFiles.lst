@@ -1,1 +1,17 @@
+C:\Users\Ivan\Documents\GitHub\vin-decoder\src\main\java\com\vin\decoder\util\VinValidatorUtil.java
+C:\Users\Ivan\Documents\GitHub\vin-decoder\src\main\java\com\vin\decoder\service\state\RequestStatus.java
+C:\Users\Ivan\Documents\GitHub\vin-decoder\src\main\java\com\vin\decoder\service\VinCheckService.java
+C:\Users\Ivan\Documents\GitHub\vin-decoder\src\main\java\com\vin\decoder\repository\VinHistoryRepository.java
+C:\Users\Ivan\Documents\GitHub\vin-decoder\src\main\java\com\vin\decoder\model\CarInfo.java
+C:\Users\Ivan\Documents\GitHub\vin-decoder\src\main\java\com\vin\decoder\service\state\RequestState.java
+C:\Users\Ivan\Documents\GitHub\vin-decoder\src\main\java\com\vin\decoder\service\validation\BasicVinValidation.java
 C:\Users\Ivan\Documents\GitHub\vin-decoder\src\main\java\com\vin\decoder\VinDecoderApplication.java
+C:\Users\Ivan\Documents\GitHub\vin-decoder\src\main\java\com\vin\decoder\config\SecurityConfig.java
+C:\Users\Ivan\Documents\GitHub\vin-decoder\src\main\java\com\vin\decoder\service\external\VinDecoderAdapter.java
+C:\Users\Ivan\Documents\GitHub\vin-decoder\src\main\java\com\vin\decoder\repository\VinCacheProxy.java
+C:\Users\Ivan\Documents\GitHub\vin-decoder\src\main\java\com\vin\decoder\api\VinController.java
+C:\Users\Ivan\Documents\GitHub\vin-decoder\src\main\java\com\vin\decoder\service\external\DadataAdapter.java
+C:\Users\Ivan\Documents\GitHub\vin-decoder\src\main\java\com\vin\decoder\model\VinRequest.java
+C:\Users\Ivan\Documents\GitHub\vin-decoder\src\main\java\com\vin\decoder\service\validation\ChecksumVinValidation.java
+C:\Users\Ivan\Documents\GitHub\vin-decoder\src\main\java\com\vin\decoder\config\DadataConfig.java
+C:\Users\Ivan\Documents\GitHub\vin-decoder\src\main\java\com\vin\decoder\service\validation\VinValidationStrategy.java
