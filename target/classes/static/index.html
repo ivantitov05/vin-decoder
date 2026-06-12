@@ -65,6 +65,7 @@
         .result-card.active { display: block; }
         .result-card.success { background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%); }
         .result-card.error { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; }
+        .result-card.warning { background: linear-gradient(135deg, #ffe29f 0%, #ffa99f 100%); }
         .result-field { display: flex; padding: 10px 0; border-bottom: 1px solid rgba(0,0,0,0.1); }
         .result-label { font-weight: bold; width: 120px; }
         .result-value { flex: 1; font-family: monospace; }
@@ -74,20 +75,25 @@
         .history-table tr:hover { background: #f5f5f5; }
         .status-success { color: green; font-weight: bold; }
         .status-error { color: red; font-weight: bold; }
+        .status-warning { color: orange; font-weight: bold; }
         .auth-section { display: flex; justify-content: flex-end; margin-bottom: 20px; }
         .token-info { background: #e8f4fd; padding: 10px 15px; border-radius: 8px; display: flex; align-items: center; gap: 15px; flex-wrap: wrap; }
         .logout-btn { background: #e74c3c; color: white; padding: 5px 15px; border-radius: 5px; cursor: pointer; }
         .login-form { display: flex; gap: 10px; flex-wrap: wrap; }
         .login-form input { padding: 8px 12px; border: 1px solid #ddd; border-radius: 5px; }
         .error-text { color: red; font-size: 12px; margin-top: 5px; }
+        .server-error { background: #ffebee; color: #c62828; padding: 10px; border-radius: 8px; margin-bottom: 15px; text-align: center; }
         footer { text-align: center; color: white; margin-top: 30px; opacity: 0.8; }
     </style>
 </head>
 <body>
 <div class="container">
     <div class="card">
-        <h1> VIN Decoder</h1>
+        <h1>VIN Decoder</h1>
         <div class="subtitle">Расшифровка VIN-кода через NHTSA API</div>
+
+        <!-- Индикатор статуса сервера -->
+        <div id="serverStatus" style="margin-bottom: 15px;"></div>
 
         <!-- Авторизация -->
         <div class="auth-section" id="authSection">
@@ -102,7 +108,7 @@
             </div>
             <div id="authorizedBlock" style="display:none;">
                 <div class="token-info">
-                    <span> Вы вошли как <strong id="currentUser"></strong></span>
+                    <span>Вы вошли как <strong id="currentUser"></strong></span>
                     <span class="logout-btn" onclick="logout()">Выйти</span>
                 </div>
             </div>
@@ -111,9 +117,9 @@
 
     <!-- Форма проверки VIN -->
     <div class="card">
-        <h2> Проверка VIN</h2>
+        <h2>Проверка VIN</h2>
         <div class="vin-input-group">
-            <input type="text" class="vin-input" id="vinInput" placeholder="17-значный VIN (например, WBA3B5G59ENF12345)" maxlength="17">
+            <input type="text" class="vin-input" id="vinInput" placeholder="17-значный VIN (например, WBA8B9G5XJNB12345)" maxlength="17">
             <button class="btn btn-primary" onclick="checkVin()">Проверить</button>
         </div>
         <div id="loading" class="loading"><div class="spinner"></div><div>Загрузка...</div></div>
@@ -122,12 +128,12 @@
 
     <!-- История -->
     <div class="card">
-        <h2> История проверок</h2>
+        <h2>История проверок</h2>
         <button class="btn btn-secondary" onclick="loadHistory()">Обновить историю</button>
         <div style="overflow-x: auto; margin-top: 15px;">
             <table class="history-table">
                 <thead><tr><th>VIN</th><th>Марка</th><th>Модель</th><th>Год</th><th>Статус</th><th>Дата</th></tr></thead>
-                <tbody id="historyBody"><tr><td colspan="6">Авторизуйтесь</td></tr></tbody>
+                <tbody id="historyBody"><tr><td colspan="6">Авторизуйтесь</td></tr>
             </table>
         </div>
     </div>
@@ -135,15 +141,44 @@
 </div>
 
 <script>
-    // Загружаем токен из localStorage при старте
-    let currentToken = localStorage.getItem('jwt_token');
-    console.log('Token on load:', currentToken ? 'exists' : 'not found');
-
-    // Если токен есть - показываем авторизованное состояние
-    if (currentToken) {
-        showAuthorizedState();
-        loadHistory();
+    // Функция проверки доступности сервера
+    async function checkServerStatus() {
+        const statusDiv = document.getElementById('serverStatus');
+        try {
+            const response = await fetch('/api/auth/login', {
+                method: 'OPTIONS',
+                signal: AbortSignal.timeout(3000)
+            });
+            statusDiv.innerHTML = '';
+            return true;
+        } catch (err) {
+            statusDiv.innerHTML = '<div class="server-error">⚠Сервер недоступен! Запустите приложение (java -jar target/vin-decoder-1.0.0.jar)</div>';
+            return false;
+        }
     }
+
+    // Обработка ошибок fetch
+    function handleFetchError(error, defaultMessage = 'Ошибка сети') {
+        console.error('Fetch error:', error);
+        if (error.message === 'Failed to fetch' ||
+            error.message.includes('ERR_CONNECTION_REFUSED') ||
+            error.message.includes('NetworkError') ||
+            error.name === 'AbortError') {
+            return 'Сервер недоступен! Убедитесь, что приложение запущено на порту 8080';
+        }
+        return error.message || defaultMessage;
+    }
+
+    let currentToken = localStorage.getItem('jwt_token');
+
+    // Проверка сервера при загрузке
+    document.addEventListener('DOMContentLoaded', () => {
+        checkServerStatus();
+        if (currentToken) {
+            showAuthorizedState();
+            loadHistory();
+        }
+    });
 
     // Регистрация
     async function register() {
@@ -157,16 +192,19 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, password })
             });
-            const data = await response.json();
-            if (response.ok) {
-                errorDiv.style.color = 'green';
-                errorDiv.textContent = 'Регистрация успешна! Теперь войдите.';
-                setTimeout(() => errorDiv.textContent = '', 3000);
-            } else {
-                errorDiv.textContent = data.error || 'Ошибка регистрации';
+
+            if (!response.ok) {
+                const data = await response.json();
+                throw new Error(data.error || 'Ошибка регистрации');
             }
+
+            errorDiv.style.color = 'green';
+            errorDiv.textContent = 'Регистрация успешна! Теперь войдите.';
+            setTimeout(() => errorDiv.textContent = '', 3000);
+
         } catch (err) {
-            errorDiv.textContent = 'Ошибка сети';
+            errorDiv.style.color = 'red';
+            errorDiv.textContent = handleFetchError(err, 'Ошибка регистрации');
         }
     }
 
@@ -176,8 +214,6 @@
         const password = document.getElementById('loginPassword').value;
         const errorDiv = document.getElementById('authError');
 
-        console.log('Login attempt:', username);
-
         try {
             const response = await fetch('/api/auth/login', {
                 method: 'POST',
@@ -185,24 +221,24 @@
                 body: JSON.stringify({ username, password })
             });
 
-            const data = await response.json();
-            console.log('Login response:', data);
-
-            if (response.ok && data.token) {
-                // СОХРАНЯЕМ ТОКЕН
-                currentToken = data.token;
-                localStorage.setItem('jwt_token', currentToken);
-                console.log('Token saved:', currentToken.substring(0, 50) + '...');
-
-                showAuthorizedState();
-                loadHistory();
-                errorDiv.textContent = '';
-            } else {
-                errorDiv.textContent = data.error || 'Ошибка входа';
+            if (!response.ok) {
+                const data = await response.json();
+                throw new Error(data.error || 'Ошибка входа');
             }
+
+            const data = await response.json();
+            if (!data.token) throw new Error('Токен не получен');
+
+            currentToken = data.token;
+            localStorage.setItem('jwt_token', currentToken);
+            showAuthorizedState();
+            loadHistory();
+            errorDiv.textContent = '';
+            checkServerStatus();
+
         } catch (err) {
-            console.error('Login error:', err);
-            errorDiv.textContent = 'Ошибка сети';
+            errorDiv.style.color = 'red';
+            errorDiv.textContent = handleFetchError(err, 'Неверные учётные данные');
         }
     }
 
@@ -215,7 +251,6 @@
         document.getElementById('historyBody').innerHTML = '<tr><td colspan="6">Авторизуйтесь</td></tr>';
         document.getElementById('result').className = 'result-card';
         document.getElementById('result').style.display = 'none';
-        console.log('Logged out');
     }
 
     // Показать авторизованное состояние
@@ -223,7 +258,6 @@
         document.getElementById('unauthorizedBlock').style.display = 'none';
         document.getElementById('authorizedBlock').style.display = 'block';
 
-        // Показать username из токена
         if (currentToken) {
             try {
                 const payload = JSON.parse(atob(currentToken.split('.')[1]));
@@ -243,11 +277,11 @@
 
         const vin = document.getElementById('vinInput').value.trim().toUpperCase();
         if (!vin) {
-            alert('Введите VIN');
+            showResult('error', 'Ошибка', 'Введите VIN');
             return;
         }
         if (vin.length !== 17) {
-            alert('VIN должен быть 17 символов');
+            showResult('error', 'Ошибка валидации', 'VIN должен содержать 17 символов');
             return;
         }
 
@@ -263,27 +297,38 @@
                 headers: { 'Authorization': `Bearer ${currentToken}` }
             });
 
-            const data = await response.json();
-
-            if (response.ok) {
-                resultDiv.className = 'result-card success active';
-                resultDiv.innerHTML = `
-                    <h3>Результат проверки</h3>
-                    <div class="result-field"><div class="result-label">Марка:</div><div class="result-value">${data.brand || '—'}</div></div>
-                    <div class="result-field"><div class="result-label">Модель:</div><div class="result-value">${data.model || '—'}</div></div>
-                    <div class="result-field"><div class="result-label">Год:</div><div class="result-value">${data.year || '—'}</div></div>
-                    <div class="result-field"><div class="result-label">Статус:</div><div class="result-value">${data.status || '—'}</div></div>
-                `;
-                loadHistory();
-            } else {
-                resultDiv.className = 'result-card error active';
-                resultDiv.innerHTML = `<h3>Ошибка</h3><p>${data.error || 'Не удалось проверить VIN'}</p>`;
+            if (!response.ok) {
+                const data = await response.json();
+                throw new Error(data.error || `Ошибка: ${response.status}`);
             }
+
+            const data = await response.json();
+            showResult('success', 'Результат проверки', data);
+            loadHistory();
+
         } catch (err) {
-            resultDiv.className = 'result-card error active';
-            resultDiv.innerHTML = `<h3>Ошибка</h3><p>Сетевая ошибка</p>`;
+            showResult('error', 'Ошибка', handleFetchError(err, 'Не удалось проверить VIN'));
         } finally {
             loading.classList.remove('active');
+        }
+    }
+
+    // Показать результат
+    function showResult(type, title, data) {
+        const resultDiv = document.getElementById('result');
+        resultDiv.className = `result-card ${type} active`;
+
+        if (type === 'success') {
+            const statusClass = data.status === 'SUCCESS' ? 'status-success' : 'status-warning';
+            resultDiv.innerHTML = `
+                <h3>${title}</h3>
+                <div class="result-field"><div class="result-label">Марка:</div><div class="result-value">${data.brand || '—'}</div></div>
+                <div class="result-field"><div class="result-label">Модель:</div><div class="result-value">${data.model || '—'}</div></div>
+                <div class="result-field"><div class="result-label">Год:</div><div class="result-value">${data.year || '—'}</div></div>
+                <div class="result-field"><div class="result-label">Статус:</div><div class="result-value ${statusClass}">${data.status || '—'}</div></div>
+            `;
+        } else {
+            resultDiv.innerHTML = `<h3>${title}</h3><p>${typeof data === 'string' ? data : JSON.stringify(data)}</p>`;
         }
     }
 
@@ -299,27 +344,32 @@
                 headers: { 'Authorization': `Bearer ${currentToken}` }
             });
 
-            if (response.ok) {
-                const history = await response.json();
-                if (history.length === 0) {
-                    historyBody.innerHTML = '<tr><td colspan="6">История пуста</td></tr>';
-                } else {
-                    historyBody.innerHTML = history.map(item => `
-                        <tr>
-                            <td><code>${item.vin || '—'}</code></td>
-                            <td>${item.brand || '—'}</td>
-                            <td>${item.model || '—'}</td>
-                            <td>${item.year || '—'}</td>
-                            <td class="${item.status === 'SUCCESS' ? 'status-success' : 'status-error'}">${item.status || '—'}</td>
-                            <td>${item.checkedAt ? new Date(item.checkedAt).toLocaleString() : '—'}</td>
-                        </tr>
-                    `).join('');
-                }
+            if (!response.ok) {
+                throw new Error(`Ошибка: ${response.status}`);
+            }
+
+            const history = await response.json();
+            if (history.length === 0) {
+                historyBody.innerHTML = '<tr><td colspan="6">История пуста</td></tr>';
             } else {
-                historyBody.innerHTML = '<tr><td colspan="6">Ошибка загрузки</td></tr>';
+                historyBody.innerHTML = history.map(item => {
+                    let statusClass = '';
+                    if (item.status === 'SUCCESS') statusClass = 'status-success';
+                    else if (item.status === 'WARNING') statusClass = 'status-warning';
+                    else statusClass = 'status-error';
+
+                    return `<tr>
+                        <td><code>${item.vin || '—'}</code></td>
+                        <td>${item.brand || '—'}</td>
+                        <td>${item.model || '—'}</td>
+                        <td>${item.year || '—'}</td>
+                        <td class="${statusClass}">${item.status || '—'}</td>
+                        <td>${item.checkedAt ? new Date(item.checkedAt).toLocaleString() : '—'}</td>
+                    </tr>`;
+                }).join('');
             }
         } catch (err) {
-            historyBody.innerHTML = '<tr><td colspan="6">Ошибка сети</td></tr>';
+            historyBody.innerHTML = `<tr><td colspan="6">${handleFetchError(err, 'Ошибка загрузки истории')}</td></tr>`;
         }
     }
 
