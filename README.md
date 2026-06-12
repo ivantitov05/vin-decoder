@@ -25,6 +25,7 @@
 - PostgreSQL 14+
 - Maven 3.8+
 
+```markdown
 ### Настройка базы данных
 
 ```sql
