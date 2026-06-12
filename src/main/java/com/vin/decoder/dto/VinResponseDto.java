@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class VinResponseDto {
+    private String vin;
     private String brand;
     private String model;
     private Integer year;

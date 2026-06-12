@@ -28,15 +28,20 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // Swagger UI endpoints
+                        // Публичные эндпоинты
                         .requestMatchers(
-                                "/v3/api-docs/**",
-                                "/swagger-ui/**",
-                                "/swagger-ui.html",
-                                "/swagger-resources/**",
-                                "/webjars/**"
+                                "/api/auth/**",           // логин и регистрация
+                                "/",                      // корень
+                                "/index.html",            // главная страница
+                                "/*.html",                // все html страницы
+                                "/**.html",               // альтернативный вариант
+                                "/static/**",             // статические файлы
+                                "/favicon.ico",           // иконка
+                                "/v3/api-docs/**",        // swagger
+                                "/swagger-ui/**",         // swagger
+                                "/swagger-ui.html"        // swagger
                         ).permitAll()
-                        .requestMatchers("/api/auth/**").permitAll()
+
                         .anyRequest().authenticated()
                 )
                 .authenticationProvider(authenticationProvider())
