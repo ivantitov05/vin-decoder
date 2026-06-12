@@ -45,15 +45,14 @@ jwt.expiration=86400000
 
 spring.cache.type=simple
 ```
-
-###Быстрый запуск 
+Быстрый запуск 
 build-and-run.bat   # сборка + запуск
 run.bat            # только запуск
 
-###Веб-интерфейс
+Веб-интерфейс
 http://localhost:8080/index.html
 
-###Swagger UI
+Swagger UI
 http://localhost:8080/swagger-ui.html
 
 ## API Endpoints
