@@ -45,7 +45,6 @@ jwt.expiration=86400000
 spring.cache.type=simple
 
 ###Быстрый запуск 
-
 build-and-run.bat   # сборка + запуск
 run.bat            # только запуск
 
