@@ -77,7 +77,7 @@ http://localhost:8080/swagger-ui.html
 
 | Форма авторизации | Успешный вход |
 |:---:|:---:|
-| ![Авторизация](screenshots/1-login.png) | ![Успешный вход](screenshots/1-login2.png) |
+| ![Авторизация](screenshots/1-login1.png) | ![Успешный вход](screenshots/1-login2.png) |
 
 | Проверка VIN | История проверок |
 |:---:|:---:|
