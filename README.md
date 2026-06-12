@@ -25,13 +25,13 @@
 - PostgreSQL 14+
 - Maven 3.8+
 
-```markdown
 ### Настройка базы данных
 
 ```sql
 CREATE DATABASE vin_decoder;
 CREATE USER vin_user WITH PASSWORD 'your_password';
 GRANT ALL PRIVILEGES ON DATABASE vin_decoder TO vin_user;
+```
 
 ### Конфигурация (application.properties)
 
@@ -44,6 +44,7 @@ jwt.secret=yourSecretKeyForJWTGeneration2026
 jwt.expiration=86400000
 
 spring.cache.type=simple
+```
 
 ###Быстрый запуск 
 build-and-run.bat   # сборка + запуск
