@@ -1,0 +1,5 @@
+com\vin\decoder\util\VinValidatorUtilTest.class
+com\vin\decoder\security\JwtUtilTest.class
+com\vin\decoder\service\validation\BasicVinValidationTest.class
+com\vin\decoder\integration\AuthControllerIntegrationTest.class
+com\vin\decoder\integration\VinControllerIntegrationTest.class

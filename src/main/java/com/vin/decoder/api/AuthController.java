@@ -4,6 +4,7 @@ import com.vin.decoder.dto.AuthRequest;
 import com.vin.decoder.model.User;
 import com.vin.decoder.repository.UserRepository;
 import com.vin.decoder.security.JwtUtil;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -22,7 +23,7 @@ public class AuthController {
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody AuthRequest request) {
+    public ResponseEntity<?> register(@Valid @RequestBody AuthRequest request) {
         String username = request.getUsername();
         String password = request.getPassword();
 
@@ -41,7 +42,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody AuthRequest  request) {
+    public ResponseEntity<?> login(@Valid @RequestBody AuthRequest  request) {
         String username = request.getUsername();
         String password = request.getPassword();
 

@@ -12,6 +12,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+
 import java.io.IOException;
 
 @Slf4j
@@ -29,45 +30,44 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         String path = request.getRequestURI();
 
-        if (isPublicEndpoint(path)) {
-            log.debug("Public endpoint accessed: {}", path);
+        if (path.startsWith("/api/auth/") ||
+                path.startsWith("/swagger-ui") ||
+                path.startsWith("/v3/api-docs") ||
+                path.equals("/") ||
+                path.equals("/index.html") ||
+                path.startsWith("/.well-known/")) {  // для Chrome DevTools
+            log.debug("Public path: {}", path);
             chain.doFilter(request, response);
             return;
         }
 
-        log.debug("Protected endpoint accessed: {}", path);
-
         String authHeader = request.getHeader("Authorization");
 
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7);
-            if (jwtUtil.validateToken(token)) {
-                String username = jwtUtil.extractUsername(token);
-                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-                UsernamePasswordAuthenticationToken auth =
-                        new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-                SecurityContextHolder.getContext().setAuthentication(auth);
-                log.debug("Authenticated user: {}", username);
-            } else {
-                log.warn("Invalid token for path: {}", path);
-            }
-        } else {
-            log.warn("No token provided for protected endpoint: {}", path);
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            log.warn("Missing token for protected endpoint: {}", path);
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json");
             response.getWriter().write("{\"error\":\"Authentication required\"}");
             return;
         }
 
-        chain.doFilter(request, response);
-    }
+        String token = authHeader.substring(7);
 
-    private boolean isPublicEndpoint(String path) {
-        return path.startsWith("/api/auth/") ||
-                path.startsWith("/swagger-ui") ||
-                path.startsWith("/v3/api-docs") ||
-                path.startsWith("/swagger-resources") ||
-                path.equals("/") ||
-                path.equals("/error");
+        if (!jwtUtil.validateToken(token)) {
+            log.warn("Invalid token for path: {}", path);
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json");
+            response.getWriter().write("{\"error\":\"Invalid or expired token\"}");
+            return;
+        }
+
+        String username = jwtUtil.extractUsername(token);
+        UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+        UsernamePasswordAuthenticationToken auth =
+                new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+        SecurityContextHolder.getContext().setAuthentication(auth);
+
+        log.debug("Authenticated user: {}", username);
+        chain.doFilter(request, response);
     }
 }

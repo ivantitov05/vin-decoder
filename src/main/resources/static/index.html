@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VIN Decoder</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+        h1 { color: #333; margin-bottom: 10px; display: flex; align-items: center; gap: 10px; }
+        .subtitle { color: #666; margin-bottom: 30px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
+        .vin-input-group { display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 20px; }
+        .vin-input {
+            flex: 1;
+            padding: 15px 20px;
+            font-size: 18px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-family: monospace;
+            letter-spacing: 1px;
+        }
+        .vin-input:focus { outline: none; border-color: #667eea; }
+        .btn {
+            padding: 15px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(102,126,234,0.4); }
+        .btn-secondary { background: #6c757d; color: white; }
+        .btn-secondary:hover { background: #5a6268; }
+        .loading { display: none; text-align: center; padding: 20px; background: #f8f9fa; border-radius: 10px; margin-top: 20px; }
+        .loading.active { display: block; }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #ddd;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .result-card { display: none; background: #f5f7fa; border-radius: 10px; padding: 20px; margin-top: 20px; }
+        .result-card.active { display: block; }
+        .result-card.success { background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%); }
+        .result-card.error { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; }
+        .result-field { display: flex; padding: 10px 0; border-bottom: 1px solid rgba(0,0,0,0.1); }
+        .result-label { font-weight: bold; width: 120px; }
+        .result-value { flex: 1; font-family: monospace; }
+        .history-table { width: 100%; border-collapse: collapse; }
+        .history-table th, .history-table td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        .history-table th { background: #667eea; color: white; }
+        .history-table tr:hover { background: #f5f5f5; }
+        .status-success { color: green; font-weight: bold; }
+        .status-error { color: red; font-weight: bold; }
+        .auth-section { display: flex; justify-content: flex-end; margin-bottom: 20px; }
+        .token-info { background: #e8f4fd; padding: 10px 15px; border-radius: 8px; display: flex; align-items: center; gap: 15px; flex-wrap: wrap; }
+        .logout-btn { background: #e74c3c; color: white; padding: 5px 15px; border-radius: 5px; cursor: pointer; }
+        .login-form { display: flex; gap: 10px; flex-wrap: wrap; }
+        .login-form input { padding: 8px 12px; border: 1px solid #ddd; border-radius: 5px; }
+        .error-text { color: red; font-size: 12px; margin-top: 5px; }
+        footer { text-align: center; color: white; margin-top: 30px; opacity: 0.8; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="card">
+        <h1> VIN Decoder</h1>
+        <div class="subtitle">Расшифровка VIN-кода через NHTSA API</div>
+
+        <!-- Авторизация -->
+        <div class="auth-section" id="authSection">
+            <div id="unauthorizedBlock">
+                <div class="login-form">
+                    <input type="text" id="loginUsername" placeholder="Username" value="PolPot">
+                    <input type="password" id="loginPassword" placeholder="Password" value="redkhmer228">
+                    <button class="btn btn-primary" onclick="login()">Войти</button>
+                    <button class="btn btn-secondary" onclick="register()">Регистрация</button>
+                </div>
+                <div id="authError" class="error-text"></div>
+            </div>
+            <div id="authorizedBlock" style="display:none;">
+                <div class="token-info">
+                    <span> Вы вошли как <strong id="currentUser"></strong></span>
+                    <span class="logout-btn" onclick="logout()">Выйти</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Форма проверки VIN -->
+    <div class="card">
+        <h2> Проверка VIN</h2>
+        <div class="vin-input-group">
+            <input type="text" class="vin-input" id="vinInput" placeholder="17-значный VIN (например, WBA3B5G59ENF12345)" maxlength="17">
+            <button class="btn btn-primary" onclick="checkVin()">Проверить</button>
+        </div>
+        <div id="loading" class="loading"><div class="spinner"></div><div>Загрузка...</div></div>
+        <div id="result" class="result-card"></div>
+    </div>
+
+    <!-- История -->
+    <div class="card">
+        <h2> История проверок</h2>
+        <button class="btn btn-secondary" onclick="loadHistory()">Обновить историю</button>
+        <div style="overflow-x: auto; margin-top: 15px;">
+            <table class="history-table">
+                <thead><tr><th>VIN</th><th>Марка</th><th>Модель</th><th>Год</th><th>Статус</th><th>Дата</th></tr></thead>
+                <tbody id="historyBody"><tr><td colspan="6">Авторизуйтесь</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+    <footer>VIN Decoder Service | Данные NHTSA API</footer>
+</div>
+
+<script>
+    // Загружаем токен из localStorage при старте
+    let currentToken = localStorage.getItem('jwt_token');
+    console.log('Token on load:', currentToken ? 'exists' : 'not found');
+
+    // Если токен есть - показываем авторизованное состояние
+    if (currentToken) {
+        showAuthorizedState();
+        loadHistory();
+    }
+
+    // Регистрация
+    async function register() {
+        const username = document.getElementById('loginUsername').value;
+        const password = document.getElementById('loginPassword').value;
+        const errorDiv = document.getElementById('authError');
+
+        try {
+            const response = await fetch('/api/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+            const data = await response.json();
+            if (response.ok) {
+                errorDiv.style.color = 'green';
+                errorDiv.textContent = 'Регистрация успешна! Теперь войдите.';
+                setTimeout(() => errorDiv.textContent = '', 3000);
+            } else {
+                errorDiv.textContent = data.error || 'Ошибка регистрации';
+            }
+        } catch (err) {
+            errorDiv.textContent = 'Ошибка сети';
+        }
+    }
+
+    // Логин
+    async function login() {
+        const username = document.getElementById('loginUsername').value;
+        const password = document.getElementById('loginPassword').value;
+        const errorDiv = document.getElementById('authError');
+
+        console.log('Login attempt:', username);
+
+        try {
+            const response = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+
+            const data = await response.json();
+            console.log('Login response:', data);
+
+            if (response.ok && data.token) {
+                // СОХРАНЯЕМ ТОКЕН
+                currentToken = data.token;
+                localStorage.setItem('jwt_token', currentToken);
+                console.log('Token saved:', currentToken.substring(0, 50) + '...');
+
+                showAuthorizedState();
+                loadHistory();
+                errorDiv.textContent = '';
+            } else {
+                errorDiv.textContent = data.error || 'Ошибка входа';
+            }
+        } catch (err) {
+            console.error('Login error:', err);
+            errorDiv.textContent = 'Ошибка сети';
+        }
+    }
+
+    // Выход
+    function logout() {
+        localStorage.removeItem('jwt_token');
+        currentToken = null;
+        document.getElementById('unauthorizedBlock').style.display = 'block';
+        document.getElementById('authorizedBlock').style.display = 'none';
+        document.getElementById('historyBody').innerHTML = '<tr><td colspan="6">Авторизуйтесь</td></tr>';
+        document.getElementById('result').className = 'result-card';
+        document.getElementById('result').style.display = 'none';
+        console.log('Logged out');
+    }
+
+    // Показать авторизованное состояние
+    function showAuthorizedState() {
+        document.getElementById('unauthorizedBlock').style.display = 'none';
+        document.getElementById('authorizedBlock').style.display = 'block';
+
+        // Показать username из токена
+        if (currentToken) {
+            try {
+                const payload = JSON.parse(atob(currentToken.split('.')[1]));
+                document.getElementById('currentUser').textContent = payload.sub;
+            } catch(e) {
+                document.getElementById('currentUser').textContent = 'User';
+            }
+        }
+    }
+
+    // Проверка VIN
+    async function checkVin() {
+        if (!currentToken) {
+            alert('Пожалуйста, авторизуйтесь');
+            return;
+        }
+
+        const vin = document.getElementById('vinInput').value.trim().toUpperCase();
+        if (!vin) {
+            alert('Введите VIN');
+            return;
+        }
+        if (vin.length !== 17) {
+            alert('VIN должен быть 17 символов');
+            return;
+        }
+
+        const loading = document.getElementById('loading');
+        const resultDiv = document.getElementById('result');
+
+        loading.classList.add('active');
+        resultDiv.style.display = 'none';
+
+        try {
+            const response = await fetch(`/api/check?vin=${encodeURIComponent(vin)}`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${currentToken}` }
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                resultDiv.className = 'result-card success active';
+                resultDiv.innerHTML = `
+                    <h3>Результат проверки</h3>
+                    <div class="result-field"><div class="result-label">Марка:</div><div class="result-value">${data.brand || '—'}</div></div>
+                    <div class="result-field"><div class="result-label">Модель:</div><div class="result-value">${data.model || '—'}</div></div>
+                    <div class="result-field"><div class="result-label">Год:</div><div class="result-value">${data.year || '—'}</div></div>
+                    <div class="result-field"><div class="result-label">Статус:</div><div class="result-value">${data.status || '—'}</div></div>
+                `;
+                loadHistory();
+            } else {
+                resultDiv.className = 'result-card error active';
+                resultDiv.innerHTML = `<h3>Ошибка</h3><p>${data.error || 'Не удалось проверить VIN'}</p>`;
+            }
+        } catch (err) {
+            resultDiv.className = 'result-card error active';
+            resultDiv.innerHTML = `<h3>Ошибка</h3><p>Сетевая ошибка</p>`;
+        } finally {
+            loading.classList.remove('active');
+        }
+    }
+
+    // Загрузить историю
+    async function loadHistory() {
+        if (!currentToken) return;
+
+        const historyBody = document.getElementById('historyBody');
+        historyBody.innerHTML = '<tr><td colspan="6">Загрузка...</td></tr>';
+
+        try {
+            const response = await fetch('/api/history', {
+                headers: { 'Authorization': `Bearer ${currentToken}` }
+            });
+
+            if (response.ok) {
+                const history = await response.json();
+                if (history.length === 0) {
+                    historyBody.innerHTML = '<tr><td colspan="6">История пуста</td></tr>';
+                } else {
+                    historyBody.innerHTML = history.map(item => `
+                        <tr>
+                            <td><code>${item.vin || '—'}</code></td>
+                            <td>${item.brand || '—'}</td>
+                            <td>${item.model || '—'}</td>
+                            <td>${item.year || '—'}</td>
+                            <td class="${item.status === 'SUCCESS' ? 'status-success' : 'status-error'}">${item.status || '—'}</td>
+                            <td>${item.checkedAt ? new Date(item.checkedAt).toLocaleString() : '—'}</td>
+                        </tr>
+                    `).join('');
+                }
+            } else {
+                historyBody.innerHTML = '<tr><td colspan="6">Ошибка загрузки</td></tr>';
+            }
+        } catch (err) {
+            historyBody.innerHTML = '<tr><td colspan="6">Ошибка сети</td></tr>';
+        }
+    }
+
+    // Enter для отправки
+    document.getElementById('vinInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') checkVin();
+    });
+</script>
+</body>
+</html>

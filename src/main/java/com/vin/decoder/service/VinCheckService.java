@@ -8,6 +8,7 @@ import com.vin.decoder.service.state.RequestStatus;
 import com.vin.decoder.service.validation.VinValidationStrategy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,38 +24,37 @@ public class VinCheckService {
     private final VinHistoryRepository historyRepository;
     private final VinValidationStrategy validationStrategy;
 
+    @Cacheable(value = "vinCache", key = "#vin", unless = "#result == null")
     @Transactional
     public CarInfo checkVin(String vin, Long userId) {
-        // 1. Валидация формата VIN
+        log.info("Запрос к NHTSA API для VIN: {} (кеш не задействован)", vin);
+
         if (!validationStrategy.isValid(vin)) {
+            log.warn("Неверный формат VIN: {}", vin);
+            saveRequest(vin, userId, null, "Неверный формат VIN", RequestStatus.ERROR);
             throw new IllegalArgumentException("Неверный формат VIN");
         }
 
         try {
-            // 2. Запрос к внешнему API (NHTSA)
             CarInfo carInfo = vinDecoderAdapter.decodeVin(vin);
-
-            // 3. Сохранение успешного результата
-            saveRequest(vin, userId, carInfo, null, "SUCCESS");
-
-            log.info("VIN {} успешно проверен для пользователя {}", vin, userId);
+            saveRequest(vin, userId, carInfo, null, RequestStatus.SUCCESS);
+            log.info("VIN {} успешно проверен", vin);
             return carInfo;
-
         } catch (Exception e) {
-            log.error("Ошибка при проверке VIN {}: {}", vin, e.getMessage());
-            saveRequest(vin, userId, null, e.getMessage(), "ERROR");
-            throw new RuntimeException("Ошибка при проверке VIN: " + e.getMessage());
+            log.error("Ошибка проверки VIN {}: {}", vin, e.getMessage());
+            saveRequest(vin, userId, null, e.getMessage(), RequestStatus.ERROR);
+            throw new RuntimeException("Ошибка проверки VIN: " + e.getMessage());
         }
     }
 
-    private void saveRequest(String vin, Long userId, CarInfo carInfo, String errorMessage, String status) {
+    private void saveRequest(String vin, Long userId, CarInfo carInfo, String errorMessage, RequestStatus status) {
         VinRequest request = VinRequest.builder()
                 .vin(vin)
                 .userId(userId)
-                .status(RequestStatus.valueOf(status))
-                .createdAt(LocalDateTime.now())
+                .status(status)
                 .result(carInfo)
                 .errorMessage(errorMessage)
+                .createdAt(LocalDateTime.now())
                 .build();
         historyRepository.save(request);
     }
@@ -63,4 +63,7 @@ public class VinCheckService {
         return historyRepository.findByUserIdOrderByCreatedAtDesc(userId);
     }
 
+    public void clearCache() {
+        log.info("Очистка кэша VIN");
+    }
 }
