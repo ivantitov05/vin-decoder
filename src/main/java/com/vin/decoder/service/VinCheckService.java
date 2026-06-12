@@ -1,9 +1,9 @@
 package com.vin.decoder.service;
 
-import com.vin.decoder.service.external.VinDecoderAdapter;
 import com.vin.decoder.model.CarInfo;
 import com.vin.decoder.model.VinRequest;
 import com.vin.decoder.repository.VinCacheProxy;
+import com.vin.decoder.service.external.VinDecoderAdapter;
 import com.vin.decoder.service.state.RequestStatus;
 import com.vin.decoder.service.validation.VinValidationStrategy;
 import jakarta.transaction.Transactional;

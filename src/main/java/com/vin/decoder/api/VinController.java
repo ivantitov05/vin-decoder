@@ -1,5 +1,7 @@
 package com.vin.decoder.api;
 
+import com.vin.decoder.dto.VinResponseDto;
+import com.vin.decoder.mapper.VinMapper;
 import com.vin.decoder.model.CarInfo;
 import com.vin.decoder.model.User;
 import com.vin.decoder.model.VinRequest;
@@ -10,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -19,6 +22,7 @@ public class VinController {
 
     private final VinCheckService vinCheckService;
     private final UserRepository userRepository;
+    private final VinMapper vinMapper;
 
     private Long getCurrentUserId() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -28,15 +32,20 @@ public class VinController {
     }
 
     @GetMapping("/check")
-    public ResponseEntity<CarInfo> checkVIN(@RequestParam String vin) {
+    public ResponseEntity<VinResponseDto> checkVIN(@RequestParam String vin) {
         Long userId = getCurrentUserId();
-        CarInfo result = vinCheckService.checkVIN(vin, userId);
-        return ResponseEntity.ok(result);
+        CarInfo carInfo = vinCheckService.checkVIN(vin, userId);
+
+        VinResponseDto response = vinMapper.toResponseDto(
+                carInfo, null, "SUCCESS", LocalDateTime.now()
+        );
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/history")
-    public ResponseEntity<List<VinRequest>> getHistory() {
+    public ResponseEntity<List<VinResponseDto>> getHistory() {
         Long userId = getCurrentUserId();
-        return ResponseEntity.ok(vinCheckService.getUserHistory(userId));
+        List<VinRequest> history = vinCheckService.getUserHistory(userId);
+        return ResponseEntity.ok(vinMapper.toResponseDtoList(history));
     }
 }

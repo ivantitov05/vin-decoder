@@ -1,5 +1,6 @@
 package com.vin.decoder.api;
 
+import com.vin.decoder.dto.AuthRequest;
 import com.vin.decoder.model.User;
 import com.vin.decoder.repository.UserRepository;
 import com.vin.decoder.security.JwtUtil;
@@ -21,9 +22,9 @@ public class AuthController {
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody Map<String, String> request) {
-        String username = request.get("username");
-        String password = request.get("password");
+    public ResponseEntity<?> register(@RequestBody AuthRequest request) {
+        String username = request.getUsername();
+        String password = request.getPassword();
 
         if (userRepository.existsByUsername(username)) {
             return ResponseEntity.badRequest().body(Map.of("error", "Username already exists"));
@@ -40,9 +41,9 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody Map<String, String> request) {
-        String username = request.get("username");
-        String password = request.get("password");
+    public ResponseEntity<?> login(@RequestBody AuthRequest  request) {
+        String username = request.getUsername();
+        String password = request.getPassword();
 
         User user = userRepository.findByUsername(username).orElse(null);
         if (user == null || !passwordEncoder.matches(password, user.getPassword())) {

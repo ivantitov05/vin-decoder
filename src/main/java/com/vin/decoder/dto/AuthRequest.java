@@ -1,4 +1,4 @@
-package com.vin.decoder.model;
+package com.vin.decoder.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -9,9 +9,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CarInfo {
-    private String brand;
-    private String model;
-    private Integer year;
-    private Integer qc;
+public class AuthRequest {
+    private String username;
+    private String password;
 }
