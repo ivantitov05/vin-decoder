@@ -32,6 +32,7 @@ public class VinMapper {
     public VinResponseDto toResponseDto(VinRequest request) {
         CarInfo result = request.getResult();
         return VinResponseDto.builder()
+                .vin(request.getVin())
                 .brand(result != null ? result.getBrand() : null)
                 .model(result != null ? result.getModel() : null)
                 .year(result != null ? result.getYear() : null)

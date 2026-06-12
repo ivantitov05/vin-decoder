@@ -18,4 +18,6 @@ public interface VinHistoryRepository extends JpaRepository<VinRequest, Long> {
 
     // Проверка прав доступа
     Optional<VinRequest> findByIdAndUserId(Long id, Long userId);
+
+    List<VinRequest> findByUserIdOrderByCreatedAtDesc(Long userId);
 }

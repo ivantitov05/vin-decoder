@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api")
@@ -31,15 +32,24 @@ public class VinController {
         return user.getId();
     }
 
-    @GetMapping("/check")
-    public ResponseEntity<VinResponseDto> checkVIN(@RequestParam String vin) {
-        Long userId = getCurrentUserId();
-        CarInfo carInfo = vinCheckService.checkVIN(vin, userId);
+    @PostMapping("/check")
+    public ResponseEntity<?> checkVin(@RequestParam String vin) {
+        try {
+            Long userId = getCurrentUserId();
+            CarInfo carInfo = vinCheckService.checkVin(vin, userId);
 
-        VinResponseDto response = vinMapper.toResponseDto(
-                carInfo, null, "SUCCESS", LocalDateTime.now()
-        );
-        return ResponseEntity.ok(response);
+            return ResponseEntity.ok(VinResponseDto.builder()
+                    .vin(vin)
+                    .brand(carInfo.getBrand())
+                    .model(carInfo.getModel())
+                    .year(carInfo.getYear())
+                    .status("SUCCESS")
+                    .build());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
+        }
     }
 
     @GetMapping("/history")

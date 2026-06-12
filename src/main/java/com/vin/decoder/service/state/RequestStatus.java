@@ -1,8 +1,8 @@
 package com.vin.decoder.service.state;
 
 public enum RequestStatus {
-    DONE,
-    NEW,
+    SUCCESS,
+    PENDING,
     IN_PROGRESS,
     ERROR
 }
