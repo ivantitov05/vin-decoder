@@ -75,16 +75,10 @@ http://localhost:8080/swagger-ui.html
 
 ## Скриншоты
 
-<div align="center">
-  <img src="screenshots/1-login.png" alt="Авторизация" width="250"/>
-  <img src="screenshots/1-login2.png" alt="Успешный вход" width="250"/>
-  <img src="screenshots/2-vin-check.png" alt="Проверка VIN" width="250"/>
-  <img src="screenshots/3-history.png" alt="История" width="250"/>
-</div>
+| Форма авторизации | Успешный вход |
+|:---:|:---:|
+| ![Авторизация](screenshots/1-login1.png) | ![Успешный вход](screenshots/1-login2.png) |
 
-<p align="center">
-  <em>Форма входа</em>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-  <em>Авторизован</em>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-  <em>Карточка авто</em>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-  <em>История</em>
-</p>
+| Проверка VIN | История проверок |
+|:---:|:---:|
+| ![Проверка VIN](screenshots/2-vin-check.png) | ![История](screenshots/3-history.png) |
